@@ -5,19 +5,22 @@ namespace App\Http\Controllers;
 use App\Models\Player;
 use Exception;
 use Illuminate\Http\Request;
+use PhpParser\Node\Expr\AssignOp\BitwiseXor;
 
 class PlayerController {
     public function create(Request $request) {
         $player = new Player();
 
         try {
-            if (isset($request->name)) {
-                $player->name = $request->name;
+            if (
+                !isset($request->name) ||
+                !isset($request->password)
+            ) {
+                throw new Exception('Invalid body fields.', 400);
             }
 
-            if (isset($request->password)) {
-                $player->password = md5($request->password);
-            }
+            $player->name = $request->name;
+            $player->password = md5($request->password);
 
             if (isset($request->played)) {
                 $player->played = $request->played;
@@ -38,27 +41,24 @@ class PlayerController {
             }
 
             if (isset($request->enabled)) {
-                $player->enabled = true;
+                $player->enabled = $request->enabled;
             } else {
                 $player->enabled = true;
             }
 
-
-            $inserted = response($player->save());
+            return response(['executed' => $player->save()]);
         } catch (Exception $exception) {
-            return $exception;
+            return response(['exception' => $exception->getCode()]);
         }
-
-        return $inserted;
     }
 
     public function read($id = null) {
         try {
             if (isset($id)) {
-                return response(Player::find($id));
+                return response(['users' => Player::find($id)]);
             }
             else {
-                return response(Player::all());
+                return response(['users' => Player::all()]);
             }
         } catch (Exception $exception) {
             return response('Internal Server Error', 500);
@@ -89,11 +89,11 @@ class PlayerController {
         }
 
         // TODO: Check if new player is same of old player.
-        return $player->save();
+        return ['executed' => $player->save()];
     }
 
     public function delete($id) {
         $player = Player::find($id);
-        return response($player->delete());
+        return response(['executed' => $player->delete()]);
     }
 }
