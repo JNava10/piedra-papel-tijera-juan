@@ -13,37 +13,21 @@ class PlayerController {
 
         try {
             if (
-                !isset($request->name) ||
-                !isset($request->password)
+                !isset($request->newUserName) ||
+                !isset($request->newUserPassword)
             ) {
                 throw new Exception('Invalid body fields.', 400);
             }
 
-            $player->name = $request->name;
-            $player->password = md5($request->password);
+            $player->name = $request->newUserName;
+            $player->password = md5($request->newUserPassword);
+            $player->played = isset($request->newUserPlayed) ? $request->newUserPlayed : 0;
+            $player->winned = isset($request->newUserWinned) ? $request->newUserWinned : 0;
+            $player->role = isset($request->newUserRole) ? $request->newUserRole : 2; // Normal user by default.
+            $player->enabled = isset($request->newUserEnabled) ? $request->newUserEnabled : true;
 
-            if (isset($request->played)) {
-                $player->played = $request->played;
-            } else {
-                $player->played = 0;
-            }
-
-            if (isset($request->winned)) {
-                $player->winned = $request->winned;
-            } else {
-                $player->winned = 0;
-            }
-
-            if (isset($request->role)) {
-                $player->role = $request->role;
-            } else {
-                $player->role = 2;
-            }
-
-            if (isset($request->enabled)) {
-                $player->enabled = $request->enabled;
-            } else {
-                $player->enabled = true;
+            if (!Role::all('id')->find($request->newUserRole)) {
+                throw new Exception('Role not found', 10);
             }
 
             return response(['executed' => $player->save()]);
@@ -61,31 +45,31 @@ class PlayerController {
                 return response(['users' => Player::all()]);
             }
         } catch (Exception $exception) {
-            return response('Internal Server Error', 500);
+            return response(['exception' => $exception->getCode()]);
         }
     }
 
     public function update(Request $request, int $id) {
         $player = Player::find($id);
 
-        if (isset($request->name)) {
-            $player->name = $request->name;
+        if (isset($request->newUserName)) {
+            $player->name = $request->newUserName;
         }
 
-        if (isset($request->password)) {
-            $player->password = $request->password;
+        if (isset($request->newUserPassword)) {
+            $player->password = md5($request->newUserPassword);
         }
 
-        if (isset($request->played)) {
-            $player->played = $request->played;
+        if (isset($request->newUserPlayed)) {
+            $player->played = $request->newUserPlayed;
         }
 
-        if (isset($request->winned)) {
-            $player->winned = $request->winned;
+        if (isset($request->newUserWinned)) {
+            $player->winned = $request->newUserWinned;
         }
 
-        if (isset($request->role)) {
-            $player->role = $request->role;
+        if (isset($request->newUserRole)) {
+            $player->role = $request->newUserRole;
         }
 
         // TODO: Check if new player is same of old player.

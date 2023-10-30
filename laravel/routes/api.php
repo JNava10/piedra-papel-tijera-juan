@@ -19,10 +19,10 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 Route::prefix('admin')->group(function () {
-    Route::post('/', [\App\Http\Controllers\PlayerController::class, 'create']);
-    Route::get('{id?}', [\App\Http\Controllers\PlayerController::class, 'read'])->where('id', '\d');
-    Route::put('{id?}', [\App\Http\Controllers\PlayerController::class, 'update'])->where('id', '\d');
-    Route::delete('{id?}', [\App\Http\Controllers\PlayerController::class, 'delete'])->where('id', '\d');
+    Route::post('/', [\App\Http\Controllers\PlayerController::class, 'create'])->middleware('login');
+    Route::get('{id?}', [\App\Http\Controllers\PlayerController::class, 'read'])->where('id', '\d')->middleware('login');
+    Route::put('{id}', [\App\Http\Controllers\PlayerController::class, 'update'])->where('id', '\d')->middleware('login');
+    Route::delete('{id}', [\App\Http\Controllers\PlayerController::class, 'delete'])->where('id', '\d')->middleware('login');
 });
 
 Route::prefix('play')->group(function () {
