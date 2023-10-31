@@ -18,20 +18,17 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::prefix('admin')->group(function () {
+Route::middleware('login')->prefix('admin')->group(function () {
     Route::post('/', [\App\Http\Controllers\PlayerController::class, 'create'])->middleware('login');
-    Route::get('{id?}', [\App\Http\Controllers\PlayerController::class, 'read'])->where('id', '\d')->middleware('login');
-    Route::put('{id}', [\App\Http\Controllers\PlayerController::class, 'update'])->where('id', '\d')->middleware('login');
-    Route::delete('{id}', [\App\Http\Controllers\PlayerController::class, 'delete'])->where('id', '\d')->middleware('login');
+    Route::get('{id?}', [\App\Http\Controllers\PlayerController::class, 'read'])->where('id', '\d');
+    Route::put('{id}', [\App\Http\Controllers\PlayerController::class, 'update'])->where('id', '\d');
+    Route::delete('{id}', [\App\Http\Controllers\PlayerController::class, 'delete'])->where('id', '\d');
 });
 
-Route::prefix('play')->group(function () {
-    Route::get('/', [\App\Http\Controllers\GameController::class, 'getAll'])->middleware('login');
-    Route::post('/create', [\App\Http\Controllers\GameController::class, 'createGame'])->middleware('login');
-    Route::post('/join/{id?}', [\App\Http\Controllers\GameController::class, 'joinGame'])->middleware('login');
-    Route::post('/{gameId}', [\App\Http\Controllers\GameController::class, 'play'])->where('gameId', '\d')->middleware('login');
+Route::middleware('login')->prefix('play')->group(function () {
+    Route::get('/', [\App\Http\Controllers\GameController::class, 'getAll']);
+    Route::post('/create', [\App\Http\Controllers\GameController::class, 'createGame']);
+    Route::post('/join/{id?}', [\App\Http\Controllers\GameController::class, 'joinGame']);
+    Route::post('/{gameId}', [\App\Http\Controllers\GameController::class, 'play'])->where('gameId', '\d');
 });
 
-Route::prefix('login')->group(function () {
-    Route::get('/', [\App\Http\Controllers\LoginController::class, 'login'])->middleware('login');
-});
