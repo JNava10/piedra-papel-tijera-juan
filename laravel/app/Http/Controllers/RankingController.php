@@ -6,7 +6,8 @@ use Illuminate\Support\Facades\DB;
 
 class RankingController extends Controller
 {
-    public function getUsers(int $top) {
+    public function getUsers(?int $top = 10) {
+
         return response(
             [
                 "ranking" => DB::table('players')

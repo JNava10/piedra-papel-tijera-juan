@@ -118,14 +118,23 @@ class GameController {
             $turn->player = $playerId;
             $turn->hand = $request->hand;
 
+            $hand = Hand::find($request->hand);
+            $hand->times_used++;
+            $hand->save();
+
             if (
                 $turnGame->rounds === $turnGame->maxRounds &&
                 isset($firstTurnOfRound)
             ) {
                 $turn->save();
-                $winner = $this->getWinner($turnGame);
 
+                $winner = $this->getWinner($turnGame);
                 $turnGame->winnedBy = $winner;
+
+                $winnerPlayer = Player::find($winner);
+                $winnerPlayer->winned++;
+                $winnerPlayer->save();
+
                 $turnGame->save();
 
                 return response(['winner' => $winner]);
@@ -136,7 +145,7 @@ class GameController {
             if ($exception->getCode() === 4) {
                 return response(['exception' => $exception->getCode()], 409);
             } else {
-                return response(['exception' => $exception->getCode()], 400);
+                return response(['exception' => $exception->getMessage()], 400);
             }
         }
     }

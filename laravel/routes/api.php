@@ -32,3 +32,8 @@ Route::middleware('login')->prefix('play')->group(function () {
     Route::post('/{gameId}', [\App\Http\Controllers\GameController::class, 'play'])->where('gameId', '\d');
 });
 
+Route::middleware('login')->prefix('ranking')->group(function () {
+    Route::get('/{top?}', [\App\Http\Controllers\RankingController::class, 'getUsers'])->where('top', '\d');
+    Route::get('/hands', [\App\Http\Controllers\RankingController::class, 'getHands']);
+});
+
