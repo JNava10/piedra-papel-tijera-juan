@@ -30,6 +30,8 @@ class PlayerController {
                 throw new Exception('Role not found', 10);
             }
 
+
+
             return response(['executed' => $player->save()]);
         } catch (Exception $exception) {
             return response(['exception' => $exception->getCode()]);
@@ -72,7 +74,6 @@ class PlayerController {
             $player->role = $request->newUserRole;
         }
 
-        // TODO: Check if new player is same of old player.
         return ['executed' => $player->save()];
     }
 

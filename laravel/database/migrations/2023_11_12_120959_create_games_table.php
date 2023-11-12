@@ -20,8 +20,8 @@ return new class extends Migration
             $table->integer("max_rounds");
             $table->timestamps();
 
-            $table->foreign('player_one')->references('id')->on('users')->onDelete('cascade');
-            $table->foreign('player_two')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('player_one')->references('id')->on('players')->onDelete('cascade');
+            $table->foreign('player_two')->references('id')->on('players')->onDelete('cascade');
         });
     }
 
