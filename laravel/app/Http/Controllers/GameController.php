@@ -13,21 +13,22 @@ use Illuminate\Http\Request;
 class GameController {
     public function createGame(Request $request) {
         $game = new Game();
+        $playerId = $this->getPlayerId($request->user);
 
         try {
             if (
-                !isset($request->maxRounds) ||
-                !isset($request->player)
+                !isset($request->maxRounds) || !isset($request->user) ||
+                !isset($request->password)
             ) {
                 throw new Exception('Invalid body fields.');
             }
 
-            if (!$this->playerExist($request->player)) {
+            if (!$this->playerExist($playerId)) {
                 throw new Exception('Player don\'t exist.');
             }
 
             $game->maxRounds = $request->maxRounds;
-            $game->playerOne = $request->player;
+            $game->playerOne = $playerId;
             $game->playerTwo = 0;
             $game->winnedBy = 0;
             $game->rounds = 1;
@@ -40,21 +41,33 @@ class GameController {
 
     public function play(Request $request, int $gameId) {
         try {
+            $playerId = $this->getPlayerId($request->user);
             $turn = new Turn();
             $turnGame = Game::find($gameId);
             $roundTurns = Turn::where('game', '=', $gameId)->where('round', '=', $turnGame->rounds)->get();
             $firstTurnOfRound = $roundTurns->first();
 
+            if ($roundTurns->count() === 2) {
+                $turn->round = $turnGame->rounds + 1;
+                $turnGame->rounds++;
+            } else {
+                $turn->round = $turnGame->rounds;
+            }
+
+            if ($turn->round <= $turnGame->maxRounds) {
+                $turnGame->save();
+            }
+
             // Error Handling //
 
             if (
-                !isset($request->playerId) ||
+                !isset($playerId) ||
                 !isset($request->hand)
             ) {
                 throw new Exception('Invalid body fields.', 1);
             }
 
-            if (!$this->playerExist($request->playerId)) {
+            if (!$this->playerExist($playerId)) {
                 throw new Exception('Player don\'t exist.', 2);
             }
 
@@ -63,8 +76,8 @@ class GameController {
             }
 
             if (
-                $request->playerId !== $turnGame->playerOne &&
-                $request->playerId !== $turnGame->playerTwo
+                $playerId !== $turnGame->playerOne &&
+                $playerId !== $turnGame->playerTwo
             ) {
                 throw new Exception('No permission.', 4);
             }
@@ -75,7 +88,7 @@ class GameController {
 
             if (
                 isset($firstTurnOfRound) &&
-                $roundTurns->first()->player === $request->playerId
+                $firstTurnOfRound->player === $playerId
             ) {
                 throw new Exception('Player already played this round.', 6);
             }
@@ -86,64 +99,72 @@ class GameController {
 
             if (
                 isset($firstTurnOfRound) &&
-                $this->handIsAlreadyPlayed($roundTurns, $request)
+                $this->handIsAlreadyPlayed($roundTurns, $request) &&
+                $turn->round === $firstTurnOfRound->round
             ) {
                 throw new Exception('Hand already played.', 8);
             }
 
             if (
                 $roundTurns->count() === 2 &&
-                $turnGame->rounds === $turnGame->maxRounds
+                $turnGame->rounds > $turnGame->maxRounds
             ) {
                 throw new Exception('Game finished.', 9);
             }
 
             // Handle data without errors //
 
-            if ($roundTurns->count() === 2) {
-                $turn->round = $turnGame->rounds + 1;
-                $turnGame->rounds++;
-                $turnGame->save();
-            } else {
-                $turn->round = $turnGame->rounds;
-            }
-
             $turn->game = $gameId;
-            $turn->player = $request->playerId;
+            $turn->player = $playerId;
             $turn->hand = $request->hand;
+
+            $hand = Hand::find($request->hand);
+            $hand->times_used++;
+            $hand->save();
 
             if (
                 $turnGame->rounds === $turnGame->maxRounds &&
                 isset($firstTurnOfRound)
             ) {
                 $turn->save();
-                return response(['winner' => $this->getWinner($turnGame)]);
+
+                $winner = $this->getWinner($turnGame);
+                $turnGame->winnedBy = $winner;
+
+                $winnerPlayer = Player::find($winner);
+                $winnerPlayer->winned++;
+                $winnerPlayer->save();
+
+                $turnGame->save();
+
+                return response(['winner' => $winner]);
             } else {
-                return response($turn->save());
+                return response(['updated' => $turn->save()]);
             }
         } catch (Exception $exception) {
             if ($exception->getCode() === 4) {
-                return response($exception->getMessage(), 409);
+                return response(['exception' => $exception->getCode()], 409);
             } else {
-                return response($exception, 400);
+                return response(['exception' => $exception->getMessage()], 400);
             }
         }
     }
 
     public function joinGame(Request $request) {
         try {
-            $firstGameFree = Game::where('playerTwo', 0)->first();
-            $game = isset($request->gameId) ? Game::find($request->gameId) : $firstGameFree;
-
-            if (!isset($request->playerId)) {
+            if (!isset($request->user) || !isset($request->password)) {
                 throw new Exception('Invalid body fields.', 1);
             }
 
-            if ($request->playerId === $game->playerOne || $request->playerId === $game->playerTwo) {
+            $playerId = $this->getPlayerId($request->user);
+            $firstGameFree = Game::where('playerTwo', 0)->first();
+            $game = isset($request->gameId) ? Game::find($request->gameId) : $firstGameFree;
+
+            if ($playerId === $game->playerOne || $playerId === $game->playerTwo) {
                 throw new Exception('Player already joined.', 2);
             }
 
-            if (!$this->playerExist($request->playerId)) {
+            if (!$this->playerExist($playerId)) {
                 throw new Exception('Player don\'t exist.', 3);
             }
 
@@ -151,12 +172,12 @@ class GameController {
                 throw new Exception('No games free.', 4);
             }
 
-            $game->playerTwo = $request->playerId;
+            $game->playerTwo = $playerId;
 
             return response($game->save());
         } catch (Exception $exception) {
             echo $exception;
-            return response('Exception (' . $exception->getCode() . ')', 400);
+            return response(['exception' => $exception->getCode()], 400);
         }
     }
 
@@ -164,8 +185,8 @@ class GameController {
         return Game::all();
     }
 
-    private function playerExist(int $playerId) {
-        return Player::find($playerId) !== null;
+    private function playerExist(int $player) {
+        return Player::find($player) !== null;
     }
 
     private function isValidHand(int $hand) {
@@ -174,6 +195,10 @@ class GameController {
 
     private function handIsAlreadyPlayed($roundTurns, $request) {
         return $request->hand === $roundTurns->first()->hand;
+    }
+
+    private function getPlayerId($name) {
+        return Player::where('name', '=', $name)->get()->first()->id;
     }
 
     private function getWinner(Game $turnsGame) {
@@ -188,17 +213,46 @@ class GameController {
             $secondTurnHand = Hand::where('id', $secondTurn->hand)->get()->first();
 
             if ($secondTurn->hand === $firstTurnHand->beats) {
+
                 if ($firstTurn->player === $turnsGame->playerOne) {
                     $playerOneWins++;
                 } else {
                     $playerTwoWins++;
                 }
+
+//                echo json_encode([
+//                    "hand" => $firstTurnHand->name,
+//                    "player" => $firstTurn->player,
+//                    "round" => $firstTurn->round
+//                ]);
+//
+//
+//                echo json_encode([
+//                    "hand" => $secondTurnHand->name,
+//                    "player" => $secondTurn->player,
+//                    "round" => $secondTurn->round
+//                ]);
+
             } else {
+                echo $secondTurnHand->name;
+
                 if ($secondTurn->player === $turnsGame->playerOne) {
                     $playerOneWins++;
                 } else {
                     $playerTwoWins++;
                 }
+
+//                echo json_encode([
+//                    "hand" => $firstTurnHand->name,
+//                    "player" => $firstTurn->player,
+//                    "round" => $firstTurn->round
+//                ]);
+//
+//                echo json_encode([
+//                    "hand" => $secondTurnHand->name,
+//                    "player" => $secondTurn->player,
+//                    "round" => $secondTurn->round
+//                ]);
             }
 
 //            echo json_encode([

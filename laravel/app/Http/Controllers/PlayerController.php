@@ -3,97 +3,81 @@
 namespace App\Http\Controllers;
 
 use App\Models\Player;
+use App\Models\Role;
 use Exception;
 use Illuminate\Http\Request;
+use PhpParser\Node\Expr\AssignOp\BitwiseXor;
 
 class PlayerController {
     public function create(Request $request) {
         $player = new Player();
 
         try {
-            if (isset($request->name)) {
-                $player->name = $request->name;
+            if (
+                !isset($request->newUserName) ||
+                !isset($request->newUserPassword)
+            ) {
+                throw new Exception('Invalid body fields.', 400);
             }
 
-            if (isset($request->password)) {
-                $player->password = md5($request->password);
+            $player->name = $request->newUserName;
+            $player->password = md5($request->newUserPassword);
+            $player->played = isset($request->newUserPlayed) ? $request->newUserPlayed : 0;
+            $player->winned = isset($request->newUserWinned) ? $request->newUserWinned : 0;
+            $player->role = isset($request->newUserRole) ? $request->newUserRole : 2; // Normal user by default.
+            $player->enabled = isset($request->newUserEnabled) ? $request->newUserEnabled : true;
+
+            if (!Role::all('id')->find($player->role)) {
+                throw new Exception('Role not found', 10);
             }
 
-            if (isset($request->played)) {
-                $player->played = $request->played;
-            } else {
-                $player->played = 0;
-            }
-
-            if (isset($request->winned)) {
-                $player->winned = $request->winned;
-            } else {
-                $player->winned = 0;
-            }
-
-            if (isset($request->role)) {
-                $player->role = $request->role;
-            } else {
-                $player->role = 2;
-            }
-
-            if (isset($request->enabled)) {
-                $player->enabled = true;
-            } else {
-                $player->enabled = true;
-            }
-
-
-            $inserted = response($player->save());
+            return response(['executed' => $player->save()]);
         } catch (Exception $exception) {
-            return $exception;
+            return response(['exception' => $exception->getCode()]);
         }
-
-        return $inserted;
     }
 
     public function read($id = null) {
         try {
             if (isset($id)) {
-                return response(Player::find($id));
+                return response(['users' => Player::find($id)]);
             }
             else {
-                return response(Player::all());
+                return response(['users' => Player::all()]);
             }
         } catch (Exception $exception) {
-            return response('Internal Server Error', 500);
+            return response(['exception' => $exception->getCode()]);
         }
     }
 
     public function update(Request $request, int $id) {
         $player = Player::find($id);
 
-        if (isset($request->name)) {
-            $player->name = $request->name;
+        if (isset($request->newUserName)) {
+            $player->name = $request->newUserName;
         }
 
-        if (isset($request->password)) {
-            $player->password = $request->password;
+        if (isset($request->newUserPassword)) {
+            $player->password = md5($request->newUserPassword);
         }
 
-        if (isset($request->played)) {
-            $player->played = $request->played;
+        if (isset($request->newUserPlayed)) {
+            $player->played = $request->newUserPlayed;
         }
 
-        if (isset($request->winned)) {
-            $player->winned = $request->winned;
+        if (isset($request->newUserWinned)) {
+            $player->winned = $request->newUserWinned;
         }
 
-        if (isset($request->role)) {
-            $player->role = $request->role;
+        if (isset($request->newUserRole)) {
+            $player->role = $request->newUserRole;
         }
 
-        // TODO: Check if new player is same of old player.
-        return $player->save();
+        return ['executed' => $player->save()];
     }
 
     public function delete($id) {
         $player = Player::find($id);
-        return response($player->delete());
+        return response(['executed' => $player->delete()]);
     }
 }
