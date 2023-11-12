@@ -20,7 +20,7 @@ return new class extends Migration
             $table->unsignedBigInteger('role');
             $table->tinyInteger('enabled');
 
-            $table->foreign('role')->references('id')->on('hands')->onDelete('cascade');
+            $table->foreign('role')->references('id')->on('roles')->onDelete('cascade');
         });
     }
 
