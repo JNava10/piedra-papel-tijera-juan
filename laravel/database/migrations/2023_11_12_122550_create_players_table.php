@@ -12,11 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('players', function (Blueprint $table) {
-            $table->integer('player_id');
+            $table->unsignedBigInteger('player');
             $table->integer('games_played');
-            $table->integer('games_winned');
-            $table->integer('role');
+            $table->integer('games_won');
+            $table->unsignedBigInteger('role');
             $table->tinyInteger('enabled');
+
+            $table->foreign('player')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('role')->references('id')->on('hands')->onDelete('cascade');
         });
     }
 

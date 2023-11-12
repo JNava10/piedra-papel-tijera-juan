@@ -11,14 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('test', function (Blueprint $table) {
+        Schema::create('games', function (Blueprint $table) {
             $table->id();
-            $table->integer("player_one");
-            $table->integer("player_two");
-            $table->integer("winned_by");
+            $table->unsignedBigInteger("player_one");
+            $table->unsignedBigInteger("player_two");
+            $table->integer("won_by");
             $table->integer("rounds");
             $table->integer("max_rounds");
             $table->timestamps();
+
+            $table->foreign('player_one')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('player_two')->references('id')->on('users')->onDelete('cascade');
         });
     }
 
