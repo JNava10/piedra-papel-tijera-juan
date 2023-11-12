@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Role;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -9,7 +10,7 @@ use Illuminate\Support\Str;
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
  */
-class UserFactory extends Factory
+class PlayerFactory extends Factory
 {
     /**
      * Define the model's default state.
@@ -20,10 +21,11 @@ class UserFactory extends Factory
     {
         return [
             'name' => 'root',
-            'email' => 'root@root.com',
-            'email_verified_at' => now(),
             'password' => md5('root'),
-            'remember_token' => Str::random(10),
+            'played' => 0,
+            'winned' => 0,
+            'role' => Role::where('name', '=', 'admin')->first()->id,
+            'enabled' => true
         ];
     }
     /**
