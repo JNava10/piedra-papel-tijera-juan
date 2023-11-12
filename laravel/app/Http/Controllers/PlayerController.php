@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Player;
+use App\Models\Role;
 use Exception;
 use Illuminate\Http\Request;
 use PhpParser\Node\Expr\AssignOp\BitwiseXor;
@@ -26,11 +27,9 @@ class PlayerController {
             $player->role = isset($request->newUserRole) ? $request->newUserRole : 2; // Normal user by default.
             $player->enabled = isset($request->newUserEnabled) ? $request->newUserEnabled : true;
 
-            if (!Role::all('id')->find($request->newUserRole)) {
+            if (!Role::all('id')->find($player->role)) {
                 throw new Exception('Role not found', 10);
             }
-
-
 
             return response(['executed' => $player->save()]);
         } catch (Exception $exception) {
